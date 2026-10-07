@@ -17,6 +17,7 @@ Each folder contains Python scripts and (in `figures/`) outputs that follow the 
 | **figure_ophthal_review** | [figures4papers/figure_ophthal_review](https://github.com/ChenLiu-1996/figures4papers/tree/main/figure_ophthal_review) | Trend plots |
 | **figure_RNAGenScape** | [figures4papers/figure_RNAGenScape](https://github.com/ChenLiu-1996/figures4papers/tree/main/figure_RNAGenScape) | Heat maps |
 | **figure_Dispersion** | [figures4papers/figure_Dispersion](https://github.com/ChenLiu-1996/figures4papers/tree/main/figure_Dispersion) | 3D-style spheres, performance plots |
+| **figure_FasterHAND** | `figure_FasterHAND/plot_architecture.py` | Architecture diagram (figkit.Diagram), IEEE `figure*` width |
 | **figure_Cflows** | [figures4papers/figure_Cflows](https://github.com/ChenLiu-1996/figures4papers/tree/main/figure_Cflows) | Comparison, ablation, trajectory plots |
 
 For full scripts, outputs, and data, clone or browse the repo. The figure_* folders are the canonical implementations of this skill's style.

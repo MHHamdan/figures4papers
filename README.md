@@ -19,6 +19,13 @@ Please feel free to cite any of these papers if you find them relevant or helpfu
 
 <br>
 
+### Architecture diagrams (Python replacement for TikZ)
+<img src="figure_FasterHAND/figures/architecture.png" width="800">
+
+Drawn with `figkit.Diagram` at print size (181 mm, 7 pt) — see
+[`scientific-figure-making/references/diagrams.md`](scientific-figure-making/references/diagrams.md)
+and [`figure_FasterHAND/plot_architecture.py`](figure_FasterHAND/plot_architecture.py).
+
 ### Bar plots for quantitative comparison
 <img src="figure_ImmunoStruct/figures/bars_comparison_IEDB.png" width="800">
 
