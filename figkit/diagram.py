@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import (Circle, FancyArrowPatch, FancyBboxPatch, Polygon,
+from matplotlib.patches import (Circle, Ellipse, FancyArrowPatch, FancyBboxPatch, Polygon,
                                 Rectangle)
 from matplotlib.path import Path as MPath
 
@@ -111,10 +111,14 @@ class Diagram:
 
     def box(self, x, y, w, h, title=None, sub=None, color=S.INK, fill=0.0, ls="-",
             lw=S.LINE_PT["normal"], r=1.0, title_size=None, sub_size=None, title_weight="medium",
-            text_color=None, sub_color=None, gap=0.15, z=3, ha="center", pad_x=1.5) -> Box:
-        """Rounded block with an optional title line and a smaller sub line."""
-        b = self.rect(x, y, w, h, fc=S.tint(color, fill) if fill else "white", ec=color,
-                      lw=lw, ls=ls, r=r, z=z)
+            text_color=None, sub_color=None, gap=0.15, z=3, ha="center", pad_x=1.5, fc=None,
+            ec=None) -> Box:
+        """Rounded block with an optional title line and a smaller sub line.
+
+        ``fc``/``ec`` override the face/edge colours derived from ``color`` and ``fill``.
+        """
+        b = self.rect(x, y, w, h, fc=fc or (S.tint(color, fill) if fill else "white"),
+                      ec=ec or color, lw=lw, ls=ls, r=r, z=z)
         tx = {"center": b.c[0], "left": x + pad_x, "right": b.x1 - pad_x}[ha]
         ts, ss = title_size or self.fs, sub_size or S.FONT_PT["small"]
         tc = text_color or S.INK
@@ -161,6 +165,64 @@ class Diagram:
         self.text(x, y - 0.05, s, size=size or S.FONT_PT["small"],
                   color="white" if filled else S.shade(color, 0.3),
                   weight="bold" if filled else "medium", z=z + 1)
+
+    def glyph(self, x, y, shape, color, size=2.0, ec=None, hollow=False, lw=0.45, z=8):
+        """Legend/marker glyph centred at (x, y), ``size`` mm across.
+
+        shape: "circle", "square", "triangle", "diamond", "halfsquare" (filled below the
+        diagonal). ``hollow`` draws a white fill with a ``color`` stroke (e.g. "reachable").
+        """
+        r = size / 2
+        fc = "white" if hollow else color
+        ec = color if (hollow or ec is None) else ec
+        lw = max(lw, 0.6) if hollow else lw
+        if shape == "circle":
+            self.ax.add_patch(Circle((x, y), r, fc=fc, ec=ec, lw=lw, zorder=z))
+        elif shape in ("square", "halfsquare"):
+            self.ax.add_patch(Rectangle((x - r, y - r), size, size, fc="white" if shape == "halfsquare"
+                                        else fc, ec=ec, lw=lw, zorder=z))
+            if shape == "halfsquare":
+                self.ax.add_patch(Polygon([(x - r, y - r), (x + r, y - r), (x + r, y + r)],
+                                          closed=True, fc=color, ec="none", zorder=z + 0.1))
+        elif shape == "triangle":
+            h = size * 0.866
+            self.ax.add_patch(Polygon([(x - r, y - h / 3), (x + r, y - h / 3), (x, y + 2 * h / 3)],
+                                      closed=True, fc=fc, ec=ec, lw=lw, zorder=z, joinstyle="miter"))
+        elif shape == "diamond":
+            self.ax.add_patch(Polygon([(x, y - r), (x + r, y), (x, y + r), (x - r, y)], closed=True,
+                                      fc=fc, ec=ec, lw=lw, zorder=z, joinstyle="miter"))
+        else:
+            raise ValueError(shape)
+        return Box(x - r, y - r, size, size)
+
+    def ellipse(self, x, y, w, h, s=None, fc=S.tint(S.INK, 0.05), ec=S.INK, lw=S.LINE_PT["normal"],
+                size=None, z=3) -> Box:
+        """Ellipse (data / tensor node) with centred text; (x, y) is the lower-left corner."""
+        self.ax.add_patch(Ellipse((x + w / 2, y + h / 2), w, h, fc=fc, ec=ec, lw=lw, zorder=z))
+        if s:
+            self.text(x + w / 2, y + h / 2, s, size=size, z=z + 1)
+        return Box(x, y, w, h)
+
+    def cylinder(self, x, y, w, h, s=None, fc=S.tint(S.INK, 0.05), ec=S.INK, lw=S.LINE_PT["normal"],
+                 cap=1.2, size=None, z=3) -> Box:
+        """Upright cylinder (store / corpus / index); ``cap`` is the height of the end ellipses."""
+        self.ax.add_patch(Rectangle((x, y + cap / 2), w, h - cap, fc=fc, ec="none", zorder=z))
+        self.ax.add_patch(Ellipse((x + w / 2, y + cap / 2), w, cap, fc=fc, ec=ec, lw=lw, zorder=z))
+        self.ax.add_patch(Rectangle((x, y + cap / 2), w, h - cap, fc=fc, ec="none", zorder=z + 0.05))
+        self.line((x, y + cap / 2), (x, y + h - cap / 2), color=ec, lw=lw, z=z + 0.1)
+        self.line((x + w, y + cap / 2), (x + w, y + h - cap / 2), color=ec, lw=lw, z=z + 0.1)
+        self.ax.add_patch(Ellipse((x + w / 2, y + h - cap / 2), w, cap, fc=fc, ec=ec, lw=lw,
+                                  zorder=z + 0.2))
+        if s:
+            self.text(x + w / 2, y + (h - cap) / 2, s, size=size, z=z + 1)
+        return Box(x, y, w, h)
+
+    def double_box(self, x, y, w, h, gap=0.7, color=S.INK, fill=0.06, lw=0.45, r=1.0, z=3,
+                   **box_kw) -> Box:
+        """Box with a double border (e.g. an environment that is not parameterised)."""
+        self.rect(x - gap, y - gap, w + 2 * gap, h + 2 * gap, fc="white", ec=color, lw=lw,
+                  r=r + gap, z=z - 0.1)
+        return self.box(x, y, w, h, color=color, fill=fill, lw=lw, r=r, z=z, **box_kw)
 
     def cells(self, x, y, nx, ny, cell, colors, ec="white", lw=0.3, z=4, gap=0.0) -> Box:
         """Grid of square cells; ``colors`` is a colour, a per-row list or an (ny, nx) array."""
@@ -242,11 +304,18 @@ class Diagram:
             verts.append(pts[-1]); codes.append(MPath.LINETO)
         else:
             verts += pts[1:]; codes += [MPath.LINETO] * (len(pts) - 1)
-        style = f"{'<' if both else ''}-|>,head_length={head * 0.12:.3f},head_width={head * 0.07:.3f}"
-        p = FancyArrowPatch(path=MPath(verts, codes), arrowstyle=style, mutation_scale=10,
-                            color=color, lw=lw, ls=ls, zorder=z, shrinkA=0, shrinkB=0,
-                            joinstyle="round", capstyle="butt")
+        style = f"{'<|' if both else ''}-|>,head_length={head * 0.12:.3f},head_width={head * 0.07:.3f}"
+        solid = ls in ("-", "solid")
+        p = FancyArrowPatch(path=MPath(verts, codes), arrowstyle=style if solid else "-",
+                            mutation_scale=10, color=color, lw=lw, ls=ls, zorder=z, shrinkA=0,
+                            shrinkB=0, joinstyle="round", capstyle="butt")
         self.ax.add_patch(p)
+        if not solid:  # dashed/dotted shaft, solid head(s)
+            for a, b in ([(pts[-2], pts[-1])] + ([(pts[1], pts[0])] if both else [])):
+                v = np.subtract(b, a); v = v / np.hypot(*v) * min(1.0, np.hypot(*np.subtract(b, a)))
+                self.ax.add_patch(FancyArrowPatch(tuple(np.subtract(b, v)), b, arrowstyle=style.replace("<|", ""),
+                                                  mutation_scale=10, color=color, lw=lw, zorder=z,
+                                                  shrinkA=0, shrinkB=0))
         return p
 
     def line(self, *pts, color=S.INK, lw=S.LINE_PT["normal"], ls="-", z=5):

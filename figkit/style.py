@@ -27,6 +27,7 @@ VENUES = {
     "icml": {"column": 82.5, "text": 171.5},
     "springer": {"column": 84.0, "text": 174.0},   # LNCS-like two-column journals
     "elsevier": {"column": 90.0, "text": 190.0},
+    "acmsmall": {"column": 139.1, "text": 139.1},  # ACM journals single column (CSUR, TOMM, ...)
 }
 IEEE = VENUES["ieee"]
 
@@ -85,6 +86,15 @@ def _register_system_fonts(families=("Inter", "Helvetica", "Arial", "Liberation 
                     font_manager.fontManager.addfont(str(p))
                 except Exception:  # unreadable font file
                     pass
+
+
+def register_font_files(*paths) -> None:
+    """Make font files outside the system font dirs usable (e.g. a TeX distribution's
+    Libertine/Libertinus to match an acmart body)."""
+    known = {f.fname for f in font_manager.fontManager.ttflist}
+    for p in paths:
+        if str(p) not in known:
+            font_manager.fontManager.addfont(str(p))
 
 
 def first_available(stack=SANS_STACK) -> str:
